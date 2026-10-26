@@ -88,11 +88,18 @@ bool Player::Update(float dt)
 	// L10: TODO 8: Camera follow
 	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();
 	float camW = Engine::GetInstance().render->camera.w;
+	float camH = Engine::GetInstance().render->camera.h;
 	float limitLeft = camW / 4.0f;
 	float limitRight = mapSize.getX() - camW * 3.0f / 4.0f;
+	float limitUp = camH / 4.0f;
+	float limitDown = mapSize.getX() - camH * 3.0f / 4.0f;
 
 	if (position.getX() > limitLeft && position.getX() < limitRight) {
 		Engine::GetInstance().render->camera.x = camW / 4.0f - position.getX();
+	}
+
+	if (position.getY() > limitUp && position.getY() < limitDown) {
+		Engine::GetInstance().render->camera.y = camH / 4.0f - position.getY();
 	}
 
 	// L10: TODO 6: Advance the animation clock -- logic, so it belongs in Update(), not Draw()
