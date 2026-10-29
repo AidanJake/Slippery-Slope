@@ -8,6 +8,7 @@
 #include "Audio.h"
 #include "Map.h"
 
+
 Player::Player() : Entity(EntityType::PLAYER)
 {
 	name = "Player";
@@ -59,31 +60,74 @@ bool Player::Update(float dt)
 {
 	// L08: TODO 5: Add physics to the player - updated player position using physics
 
-	velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
-	velocity = { 0, velocity.y }; // Reset horizontal velocity by default, this way the player stops when no key is pressed
+	if (!isDashing) {
 
-	// L10: TODO 7: Default to the "idle" animation; a key below overrides it
-	anims.SetCurrent("idle");
 
-	// Move left/right
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_LEFT) == KEY_REPEAT) {
-		velocity.x = -speed;
-		// L10: TODO 7: Switch to the "move" animation
-		anims.SetCurrent("move");
+		velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
+		velocity = { 0, velocity.y }; // Reset horizontal velocity by default, this way the player stops when no key is pressed
+
+		// L10: TODO 7: Default to the "idle" animation; a key below overrides it
+		anims.SetCurrent("idle");
+
+		// Move left/right
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_LEFT) == KEY_REPEAT) {
+			velocity.x = -speed;
+			// L10: TODO 7: Switch to the "move" animation
+			anims.SetCurrent("move");
+
+		}
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_RIGHT) == KEY_REPEAT) {
+			velocity.x = speed;
+			// L10: TODO 7: Switch to the "move" animation
+			anims.SetCurrent("move");
+
+		}
+
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_UP) == KEY_REPEAT && canJump == true) {
+			velocity.y -= 10;
+			anims.SetCurrent("move");//animation
+			LOG("JUMPED");
+			canJump = false;
+			canDash = true;
+
+		}
+
+
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_DOWN) == KEY_REPEAT) {
+			velocity.y += 100;
+			anims.SetCurrent("move");//animation
+			Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
+
+		}
+
+		Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
+
+
+
 	}
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_RIGHT) == KEY_REPEAT) {
-		velocity.x = speed;
-		// L10: TODO 7: Switch to the "move" animation
-		anims.SetCurrent("move");
+
+
+	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_REPEAT && canDash == true) {
+			
+			isDashing = true;
+			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 5, 0);
+
+			anims.SetCurrent("move");//animation
+			LOG("DASHED");
+			canDash = false;
+			isDashing = false;
 	}
+
+	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
 
 	// Apply velocity via helper
-	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
 
 	int x, y;
 	pbody->GetPosition(x, y);
 	position.setX((float)x);
 	position.setY((float)y);
+
+
 
 	// L10: TODO 8: Camera follow
 	Vector2D mapSize = Engine::GetInstance().map->GetMapSizeInPixels();
@@ -144,10 +188,18 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB)
 {
 	// Handle collision with other physics bodies
 	// For example, if the player collides with an item, you can implement logic here
+
+
 	switch (physB->ctype)
 	{
 	case ColliderType::PLATFORM:
+
+		canJump = true;
+		canDash = true;
 		LOG("Collision PLATFORM");
+		if (canJump == true)LOG("Can Jump");
+		if (canDash == true)LOG("Can Dash");
+
 		break;
 	case ColliderType::ITEM:
 		
@@ -166,4 +218,5 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB)
 	default:
 		break;
 	}
+
 }
