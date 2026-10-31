@@ -5,6 +5,7 @@
 #include <cmath>           // for floor in METERS_TO_PIXELS
 #include <box2d/box2d.h>   // Box2D 3.x single header
 
+
 constexpr float GRAVITY_X = 0.0f;
 constexpr float GRAVITY_Y = -10.0f;
 

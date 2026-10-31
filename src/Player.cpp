@@ -65,9 +65,10 @@ bool Player::Update(float dt)
 		velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
 		velocity = { 0, velocity.y }; // Reset horizontal velocity by default, this way the player stops when no key is pressed
 
-		if (touchingFloor) canDash = true, canJump = true, climb = false;
-		if (touchingWall) climb = true;
+		if (touchingFloor) canDash = true, canJump = true;
 		if (dashCooldown > 0.0f) dashCooldown -= dt;
+
+		if(!canClimb) LOG("CANT CLIMB NOW");
 
 		// L10: TODO 7: Default to the "idle" animation; a key below overrides it
 		anims.SetCurrent("idle");
@@ -95,7 +96,6 @@ bool Player::Update(float dt)
 			LOG("JUMPED");
 			canJump = false;
 			canDash = true;
-			touchingFloor = false;
 
 		}
 
@@ -108,11 +108,15 @@ bool Player::Update(float dt)
 
 
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_REPEAT && Engine::GetInstance().input->GetKey(SDL_SCANCODE_UP) == KEY_REPEAT && climb == true) {
-			velocity.y -= 0.5f;
+			velocity.y = -5.0f;
 			anims.SetCurrent("move");//animation
 
 		} else if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_REPEAT && climb == true) {
-			velocity.y = 0.0f;
+			velocity.y = 0.1f;
+			anims.SetCurrent("move");//animation
+
+		} else if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_REPEAT && Engine::GetInstance().input->GetKey(SDL_SCANCODE_DOWN) == KEY_REPEAT && climb == true) {
+			velocity.y = 5.0f;
 			anims.SetCurrent("move");//animation
 
 		}
@@ -239,7 +243,34 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB)
 
 		break;
 	case ColliderType::WALL:
-		touchingWall = true;
+		canClimb = true;
+		climb = true;
+		LOG("CLIMB IS ON");
+
+		break;
+	case ColliderType::UNKNOWN:
+		LOG("Collision UNKNOWN");
+		break;
+	default:
+		break;
+	}
+
+}
+
+void Player::OnCollisionEnd(PhysBody* physA, PhysBody* physB) {
+	// Handle collision with other physics bodies
+	// For example, if the player collides with an item, you can implement logic here
+
+	switch (physB->ctype)
+	{
+	case ColliderType::PLATFORM:
+		touchingFloor = false;
+
+		break;
+	case ColliderType::WALL:
+		canClimb = false;
+		climb = false;
+		LOG("CLIMB IS OFF");
 
 		break;
 	case ColliderType::UNKNOWN:

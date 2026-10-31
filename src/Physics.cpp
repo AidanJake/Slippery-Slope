@@ -281,6 +281,8 @@ bool Physics::PostUpdate()
 			dd.DrawTransformFcn = &Physics::DrawTransformStub;
 
 			b2World_Draw(world, &dd);
+
+
 		}
 	}
 

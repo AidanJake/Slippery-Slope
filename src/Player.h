@@ -27,6 +27,7 @@ public:
 
 	// L08: TODO 6: Define OnCollision function for the player.
 	void OnCollision(PhysBody* physA, PhysBody* physB);
+	void OnCollisionEnd(PhysBody* physA, PhysBody* physB) override;
 
 public:
 
@@ -51,6 +52,7 @@ private:
 	bool playerRight = false;
 	bool touchingFloor = true;
 	bool touchingWall = false;
+	bool canClimb = false;
 	bool climb = false;
 	//Timers
 	float dashTimer = 0.0f;
