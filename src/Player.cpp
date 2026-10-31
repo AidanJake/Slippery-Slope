@@ -60,11 +60,14 @@ bool Player::Update(float dt)
 {
 	// L08: TODO 5: Add physics to the player - updated player position using physics
 
-	if (!isDashing) {
-
+	
 
 		velocity = Engine::GetInstance().physics->GetLinearVelocity(pbody);
 		velocity = { 0, velocity.y }; // Reset horizontal velocity by default, this way the player stops when no key is pressed
+
+		if (touchingFloor) canDash = true, canJump = true, climb = false;
+		if (touchingWall) climb = true;
+		if (dashCooldown > 0.0f) dashCooldown -= dt;
 
 		// L10: TODO 7: Default to the "idle" animation; a key below overrides it
 		anims.SetCurrent("idle");
@@ -74,21 +77,25 @@ bool Player::Update(float dt)
 			velocity.x = -speed;
 			// L10: TODO 7: Switch to the "move" animation
 			anims.SetCurrent("move");
+			playerRight = false;
 
 		}
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_RIGHT) == KEY_REPEAT) {
 			velocity.x = speed;
 			// L10: TODO 7: Switch to the "move" animation
 			anims.SetCurrent("move");
+			playerRight = true;
+
 
 		}
 
-		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_UP) == KEY_REPEAT && canJump == true) {
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_UP) == KEY_DOWN && canJump == true) {
 			velocity.y -= 10;
 			anims.SetCurrent("move");//animation
 			LOG("JUMPED");
 			canJump = false;
 			canDash = true;
+			touchingFloor = false;
 
 		}
 
@@ -96,29 +103,47 @@ bool Player::Update(float dt)
 		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_DOWN) == KEY_REPEAT) {
 			velocity.y += 100;
 			anims.SetCurrent("move");//animation
-			Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
 
 		}
 
-		Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
 
-
-
-	}
-
-
-	if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_REPEAT && canDash == true) {
-			
-			isDashing = true;
-			Engine::GetInstance().physics->ApplyLinearImpulseToCenter(pbody, 5, 0);
-
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_REPEAT && Engine::GetInstance().input->GetKey(SDL_SCANCODE_UP) == KEY_REPEAT && climb == true) {
+			velocity.y -= 0.5f;
 			anims.SetCurrent("move");//animation
-			LOG("DASHED");
+
+		} else if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_LSHIFT) == KEY_REPEAT && climb == true) {
+			velocity.y = 0.0f;
+			anims.SetCurrent("move");//animation
+
+		}
+
+
+		if (Engine::GetInstance().input->GetKey(SDL_SCANCODE_SPACE) == KEY_DOWN&& canDash == true && !isDashing && dashCooldown <= 0.0f) {
+
+			isDashing = true;
+			dashTimer = 0.15f;
+			dashCooldown = 0.25f;
 			canDash = false;
+
+			anims.SetCurrent("move");
+			LOG("DASHED");
+		}
+
+	if (!isDashing) {
+		Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
+	}
+	else {
+		dashTimer -= dt;
+
+		if (dashTimer > 0.0f) {
+			if(playerRight)	Engine::GetInstance().physics->SetLinearVelocity(pbody, 20.0f, 0);
+			else Engine::GetInstance().physics->SetLinearVelocity(pbody, -20.0f, 0);
+		}
+		else {
 			isDashing = false;
+		}
 	}
 
-	Engine::GetInstance().physics->SetLinearVelocity(pbody, velocity);
 
 	// Apply velocity via helper
 
@@ -194,12 +219,13 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB)
 	{
 	case ColliderType::PLATFORM:
 
+		touchingFloor = true;
 		canJump = true;
-		canDash = true;
 		LOG("Collision PLATFORM");
 		if (canJump == true)LOG("Can Jump");
 		if (canDash == true)LOG("Can Dash");
-
+		
+		
 		break;
 	case ColliderType::ITEM:
 		
@@ -210,6 +236,10 @@ void Player::OnCollision(PhysBody* physA, PhysBody* physB)
 		physB->listener->Destroy(); 
 
 		LOG("Collision ITEM");
+
+		break;
+	case ColliderType::WALL:
+		touchingWall = true;
 
 		break;
 	case ColliderType::UNKNOWN:

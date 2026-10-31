@@ -40,11 +40,24 @@ public:
 
 private:
 	b2Vec2 velocity;
+	b2Vec2 velocitydash;
 	// Audio fx
 	int pickCoinFxId;
+
+	//Movement
 	bool canJump = true;
 	bool canDash = true;
 	bool isDashing = false;
+	bool playerRight = false;
+	bool touchingFloor = true;
+	bool touchingWall = false;
+	bool climb = false;
+	//Timers
+	float dashTimer = 0.0f;
+	float dashCooldown = 0.0f;
+	
+	//Life
+	int lifes = 3;
 
 	// L10: TODO 5: Player's animation clips, loaded from a TSX in Start()
 	AnimationSet anims;
