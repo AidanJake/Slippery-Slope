@@ -115,6 +115,31 @@ bool Map::Load(std::string path, std::string fileName)
 		// image fails the whole load instead of silently drawing nothing later
 		ret = true;
 
+		for (pugi::xml_node wallsNode = mapNode.child("objectgroup"); wallsNode; wallsNode = wallsNode.next_sibling("objectgroup")) {
+
+			std::string collisionName = wallsNode.attribute("name").as_string();
+
+			for (pugi::xml_node objNode = wallsNode.child("object"); objNode; objNode = objNode.next_sibling("object")) {
+
+				int x = objNode.attribute("x").as_int();
+				int y = objNode.attribute("y").as_int();
+				int h = objNode.attribute("height").as_int();
+				int w = objNode.attribute("width").as_int();
+
+				PhysBody* body = Engine::GetInstance().physics->CreateRectangle(x + w / 2,y + h / 2, w, h, bodyType::STATIC);
+
+				if (h == 0 || h == 0) {
+					LOG("Couldn't load object");
+					continue;
+				}
+
+				if (collisionName == "walls") body->ctype = ColliderType::WALL;
+				else body->ctype = ColliderType::PLATFORM;
+
+			}
+
+		}
+
 		for (pugi::xml_node tilesetNode = mapNode.child("tileset"); tilesetNode; tilesetNode = tilesetNode.next_sibling("tileset"))
 		{
 			TileSet tileSet;
@@ -164,28 +189,44 @@ bool Map::Load(std::string path, std::string fileName)
 		// Replace L08 TODO 3 with a loop that builds one
 		// rectangle collider per collider tile, for any layer whose "Collision"
 		// property is true.
+
 		for (const auto& layer : mapData.layers)
 		{
 			const Properties::Property* collisionLayer = layer.properties.GetProperty("Collision");
 			if (collisionLayer != nullptr && collisionLayer->value == true) {
-				for (int i = 0; i < mapData.width; i++) {
-					for (int j = 0; j < mapData.height; j++) {
 
-						int gid = layer.Get(i, j);
-						if (gid != 0 && gid == colliderGid) {
-							Vector2D mapCoord = MapToWorld(i, j);
-							PhysBody* body = Engine::GetInstance().physics->CreateRectangle((int)mapCoord.getX() + mapData.tileWidth / 2,
-																							(int)mapCoord.getY() + mapData.tileHeight / 2,
-																							mapData.tileWidth, 
-																							mapData.tileHeight, 
-																							bodyType::STATIC);
+				for (int j = 0; j < mapData.height; j++) {
+
+					int startDraw = -1;
+
+					for (int i = 0; i <= mapData.width; i++) {
+
+						bool isFloor = (i < mapData.width) && (layer.Get(i, j) == colliderGid);
+
+						if (isFloor && startDraw == -1) {
+							startDraw = i;
+						}
+						else if (!isFloor && startDraw != -1) {
+
+							int w = (i - startDraw) * mapData.tileWidth;
+							Vector2D mapCoord = MapToWorld(startDraw, j);
+
+							PhysBody* body = Engine::GetInstance().physics->CreateRectangle(
+								(int)mapCoord.getX() + w / 2,
+								(int)mapCoord.getY() + mapData.tileHeight / 2,
+								w,
+								mapData.tileHeight,
+								bodyType::STATIC);
+
 							body->ctype = ColliderType::PLATFORM;
+
+							startDraw = -1;
 						}
 					}
 				}
 			}
 		}
-		
+
 
 
 		// L06: TODO 5: LOG all the data loaded, iterating all tilesets
@@ -215,6 +256,7 @@ bool Map::Load(std::string path, std::string fileName)
 
 		if (mapFileXML) mapFileXML.reset();
 	}
+
 
 	mapLoaded = ret;
 	return ret;
